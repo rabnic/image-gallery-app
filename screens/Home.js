@@ -9,11 +9,35 @@ import {
   Pressable,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
+import { addImage, createTable, db, getAllImages } from "../database/database";
+import { useEffect } from "react";
+import * as SQLite from 'expo-sqlite';
 
 const imgURL =
   "https://img.freepik.com/free-photo/person-enjoying-warm-nostalgic-sunset_52683-100695.jpg?w=1380&t=st=1693908616~exp=1693909216~hmac=7cc7a1d87c35848b3727b4b3a8e4a6f516a1427cf1b97008c4eeea3d647c8ac6";
 
 const Home = () => {
+  const db = SQLite.openDatabase('images.db');
+
+  useEffect(() => {
+
+    // db.transaction((tx) => {
+    //   tx.executeSql(
+    //     "create table if not exists items (id integer primary key not null, done int, value text);"
+    //   );
+    // },
+    // (error) => console.log('Error creating table', error),
+    // (res) => console.log('Created table', res));
+    // createTable();
+    // addImage('testing','selfies','path://somewhere');
+    getAllImages((data) => {
+      console.log(data);
+    })
+    // // db.closeAsync();
+    // // db.deleteAsync();
+    // console.log('in useEffectss') 
+
+  }, [])
   return (
     <View style={styles.container}>
       <SafeAreaView style={{ flex: 1 }}>
@@ -64,7 +88,7 @@ const Home = () => {
           />
         </SafeAreaView>
 
-        <Pressable style={styles.buttonTakeshot} onPress={() => {}}>
+        <Pressable style={styles.buttonTakeshot} onPress={() => { }}>
           <Ionicons name="camera" size={48} color="black" />
         </Pressable>
       </SafeAreaView>

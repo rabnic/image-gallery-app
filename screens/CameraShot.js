@@ -3,6 +3,8 @@ import { Ionicons } from '@expo/vector-icons';
 import { useEffect, useRef, useState } from 'react';
 import { Button, StyleSheet, Text, Pressable, View, Image } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
+import { saveImageToDisk } from '../database/fileSystem';
+import { createTable, addImage } from '../database/database';
 
 const CameraShot = () => {
   const [type, setType] = useState(CameraType.back);
@@ -11,12 +13,14 @@ const CameraShot = () => {
   const [cameraRef, setCameraRef] = useState(null);
   const [showRecentPicture, setShowRecentPicture] = useState(false);
   let recentPicture = picture || null;
+  const DEFAULT_ALBUM_NAME = 'Camera'
 
   useEffect(() => {
     (async () => {
       const { status } = await Camera.getCameraPermissionsAsync();
       setHasPersmissions(status)
     })()
+    createTable();
   }, [])
 
   const takePicture = async () => {
@@ -34,12 +38,17 @@ const CameraShot = () => {
   };
 
   const saveRecentPicture = () => {
-    setShowRecentPicture(false);
+    console.log(recentPicture)
+    saveImageToDisk(recentPicture)
+      .then(([fileName,imagePath]) => {
+        addImage(fileName,DEFAULT_ALBUM_NAME,imagePath);
+        setShowRecentPicture(false);
+      });
   }
 
   const deleteRecentPicture = () => {
-      setShowRecentPicture(false);
-      setPicture(null);
+    setShowRecentPicture(false);
+    setPicture(null);
   }
 
   if (!hasPermissions) {
