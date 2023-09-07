@@ -7,37 +7,52 @@ import {
   SectionList,
   SafeAreaView,
   Pressable,
+  TouchableOpacity,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
-import { addImage, createTable, db, getAllImages } from "../database/database";
-import { useEffect } from "react";
-import * as SQLite from 'expo-sqlite';
+import { addImage, createTable, db, deleteAllImages, getAllImages } from "../database/database";
+import { useEffect, useState } from "react";
+import { StatusBar } from 'expo-status-bar';
 
 const imgURL =
   "https://img.freepik.com/free-photo/person-enjoying-warm-nostalgic-sunset_52683-100695.jpg?w=1380&t=st=1693908616~exp=1693909216~hmac=7cc7a1d87c35848b3727b4b3a8e4a6f516a1427cf1b97008c4eeea3d647c8ac6";
 
-const Home = () => {
-  const db = SQLite.openDatabase('images.db');
+const Home = ({ navigation }) => {
+  const [groupedImages, setGroupedImages] = useState([])
+  const [folderData, setFolderData] = useState([])
+  const [currentShownFolder, setCurrentShownFolder] = useState([])
 
   useEffect(() => {
-
-    // db.transaction((tx) => {
-    //   tx.executeSql(
-    //     "create table if not exists items (id integer primary key not null, done int, value text);"
-    //   );
-    // },
-    // (error) => console.log('Error creating table', error),
-    // (res) => console.log('Created table', res));
-    // createTable();
-    // addImage('testing','selfies','path://somewhere');
+    createTable();
     getAllImages((data) => {
-      console.log(data);
+      console.log('groups',groupByAlbum(data));
+      setGroupedImages(groupByAlbum(data));
     })
-    // // db.closeAsync();
-    // // db.deleteAsync();
-    // console.log('in useEffectss') 
 
   }, [])
+  // Group the images by album name
+  const groupByAlbum = (array) => {
+    return array.reduce((acc, obj) => {
+      const album = obj.album;
+      if (acc[album]) {
+        acc[album].push(obj);
+      } else {
+        acc[album] = [obj];
+      }
+      return acc;
+    }, {});
+  }
+
+  const foldersData = () => {
+    const data = groupedImages.map(({ folderName, elements: images }) => ({
+      folderName,
+      firstImage: images[0].uri,
+      length: images.length
+    }));
+    console.log('data',data)
+    return data;
+  }
+
   return (
     <View style={styles.container}>
       <SafeAreaView style={{ flex: 1 }}>
@@ -48,17 +63,17 @@ const Home = () => {
           <Text style={styles.foldersContainerText}>Albums</Text>
           <FlatList
             horizontal
-            data={dummyData}
+            data={foldersData()}
             renderItem={({ item }) => {
               return (
                 <View style={styles.folder}>
                   <Image
-                    source={{ uri: item.picture }}
+                    source={{ uri: item.firstImage }}
                     style={styles.folderPicture}
                     resizeMode="cover"
                   />
-                  <Text style={styles.folderText}>{item.title}</Text>
-                  <Text>({item.count})</Text>
+                  <Text style={styles.folderText}>{item.folderName}</Text>
+                  <Text>({item.length})</Text>
                 </View>
               );
             }}
@@ -75,11 +90,13 @@ const Home = () => {
             renderItem={({ item }) => {
               return (
                 <View style={styles.pictureContainer}>
-                  <Image
-                    source={{ uri: item.picture }}
-                    style={styles.picture}
-                    resizeMode="cover"
-                  />
+                  <TouchableOpacity onPress={() => {navigation.navigate('ViewImage', {imgURL: item.picture})}}>
+                    <Image
+                      source={{ uri: item.picture }}
+                      style={styles.picture}
+                      resizeMode="cover"
+                    />
+                  </TouchableOpacity>
                 </View>
               );
             }}
@@ -88,7 +105,7 @@ const Home = () => {
           />
         </SafeAreaView>
 
-        <Pressable style={styles.buttonTakeshot} onPress={() => { }}>
+        <Pressable style={styles.buttonTakeshot} onPress={() => navigation.navigate('CameraShot')}>
           <Ionicons name="camera" size={48} color="black" />
         </Pressable>
       </SafeAreaView>
@@ -120,7 +137,8 @@ const styles = StyleSheet.create({
   foldersContainer: {
     // backgroundColor: 'yellow',
     minHeight: 150,
-    padding: 10,
+    paddingHorizontal: 8,
+    paddingBottom: 10,
     borderBottomColor: "black",
     borderBottomWidth: 0.5,
   },
@@ -134,7 +152,7 @@ const styles = StyleSheet.create({
     borderRadius: 4,
   },
   folder: {
-    marginHorizontal: 8,
+    marginRight: 10,
     alignItems: "center",
   },
   folderText: {
@@ -155,36 +173,38 @@ const styles = StyleSheet.create({
   picturesContainer: {
     flex: 1,
     backgroundColor: "rgba(255,255,255,.9)",
-    paddingTop: 14,
+    paddingTop: 10,
+    paddingHorizontal: 4,
     width: "100%",
   },
   pictureList: {
-    paddingHorizontal: 8,
+    // paddingHorizontal: 8,
     // paddingTop: 4,
+    // backgroundColor: 'gray',
+    marginHorizontal: 'auto',
   },
   pictureContainer: {
-    // width: "100%",
-    // height: 200,
     flex: 1,
-    margin: 8,
+    margin: 3,
+    gap: 5,
   },
   picture: {
     flex: 1,
-    width: 180,
-    height: 180,
+    width: '100%',
+    height: 190,
     borderRadius: 5,
   },
 });
 
 const dummyData = [
   {
-    title: "Soweto",
+    title: "Camera",
     picture: imgURL,
     count: 5,
   },
   {
     title: "Selfies",
-    picture: "https://picsum.photos/id/10/200",
+    picture: "file:///data/user/0/host.exp.exponent/files/images/1694006119933.jpg",
     count: 15,
   },
   {
@@ -211,21 +231,6 @@ const dummyData = [
     title: "Cheatsheets",
     picture: imgURL,
     count: 18,
-  },
-  {
-    title: "Logos",
-    picture: imgURL,
-    count: 20,
-  },
-  {
-    title: "Icons",
-    picture: imgURL,
-    count: 5,
-  },
-  {
-    title: "Plants",
-    picture: imgURL,
-    count: 5,
   },
 ];
 

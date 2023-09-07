@@ -39,7 +39,7 @@ const getAllImages = (callback) => {
         );
     },
     (error) => console.error('Error getting images:', error),
-    (result) => console.log(result));
+    (result) => console.log('Get all images success'));
 };
 
 
@@ -54,11 +54,11 @@ const deleteImage = (id) => {
     });
 };
 
-const deleteAll = (id) => {
+const deleteAllImages = (id) => {
     db.transaction((tx) => {
         tx.executeSql(
             'DELETE FROM images',
-            [id],
+            [],
             () => console.log('Images deleted successfully'),
             (_, error) => console.error('Error deleting image:', error)
         );
@@ -66,4 +66,4 @@ const deleteAll = (id) => {
 };
 
 
-export { createTable, addImage, getAllImages, deleteImage };
+export { createTable, addImage, getAllImages, deleteImage, deleteAllImages };

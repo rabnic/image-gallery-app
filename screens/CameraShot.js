@@ -6,7 +6,7 @@ import { StatusBar } from 'expo-status-bar';
 import { saveImageToDisk } from '../database/fileSystem';
 import { createTable, addImage } from '../database/database';
 
-const CameraShot = () => {
+const CameraShot = ({navigation}) => {
   const [type, setType] = useState(CameraType.back);
   const [picture, setPicture] = useState(null);
   const [hasPermissions, setHasPersmissions] = useState(false);
