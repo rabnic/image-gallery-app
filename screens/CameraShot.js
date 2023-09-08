@@ -1,4 +1,5 @@
 import { Camera, CameraType } from 'expo-camera';
+import * as Location from 'expo-location';
 import { Ionicons } from '@expo/vector-icons';
 import { useEffect, useRef, useState } from 'react';
 import { Button, StyleSheet, Text, Pressable, View, Image } from 'react-native';
@@ -6,22 +7,38 @@ import { StatusBar } from 'expo-status-bar';
 import { saveImageToDisk } from '../database/fileSystem';
 import { createTable, addImage } from '../database/database';
 
-const CameraShot = ({navigation}) => {
+const CameraShot = ({ navigation }) => {
   const [type, setType] = useState(CameraType.back);
   const [picture, setPicture] = useState(null);
   const [hasPermissions, setHasPersmissions] = useState(false);
   const [cameraRef, setCameraRef] = useState(null);
   const [showRecentPicture, setShowRecentPicture] = useState(false);
+  const [location, setLocation] = useState(null);
   let recentPicture = picture || null;
   const DEFAULT_ALBUM_NAME = 'Camera'
 
   useEffect(() => {
+    // Request camera permissions
     (async () => {
       const { status } = await Camera.getCameraPermissionsAsync();
       setHasPersmissions(status)
     })()
-    createTable();
+    // createTable();
   }, [])
+
+  useEffect(() => {
+    // REquest location permissions
+    (async () => {
+      let { status } = await Location.requestForegroundPermissionsAsync();
+      if (status !== 'granted') {
+        setErrorMsg('Permission to access location was denied');
+        return;
+      }
+
+      let location = await Location.getCurrentPositionAsync({});
+      setLocation(location);
+    })();
+  })
 
   const takePicture = async () => {
     if (cameraRef) {
@@ -40,8 +57,8 @@ const CameraShot = ({navigation}) => {
   const saveRecentPicture = () => {
     console.log(recentPicture)
     saveImageToDisk(recentPicture)
-      .then(([fileName,imagePath]) => {
-        addImage(fileName,DEFAULT_ALBUM_NAME,imagePath);
+      .then(([fileName, imagePath]) => {
+        addImage(fileName, DEFAULT_ALBUM_NAME, imagePath);
         setShowRecentPicture(false);
       });
   }

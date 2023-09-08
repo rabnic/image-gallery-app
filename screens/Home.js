@@ -10,26 +10,51 @@ import {
   TouchableOpacity,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
-import { addImage, createTable, db, deleteAllImages, getAllImages } from "../database/database";
+import { createTable, db, getAllImages } from "../database/database";
 import { useEffect, useState } from "react";
 import { StatusBar } from 'expo-status-bar';
 
 const imgURL =
   "https://img.freepik.com/free-photo/person-enjoying-warm-nostalgic-sunset_52683-100695.jpg?w=1380&t=st=1693908616~exp=1693909216~hmac=7cc7a1d87c35848b3727b4b3a8e4a6f516a1427cf1b97008c4eeea3d647c8ac6";
 
-const Home = ({ navigation }) => {
+const Home = ({ route, navigation }) => {
   const [groupedImages, setGroupedImages] = useState([])
   const [folderData, setFolderData] = useState([])
-  const [currentShownFolder, setCurrentShownFolder] = useState([])
+  const [currentShownFolder, setCurrentShownFolder] = useState('Camera')
 
+  // Fetch data if reload is requested
+  // if (route.params?.doReload) {
+  //   console.log('Reloading');
+  //   getAllImages((data) => {
+  //     setGroupedImages(groupByAlbum(data));
+  //     route.params.doReload = false;
+  //   })
+  // }
+
+  // useEffect(() => {
+  //   createTable();
+  //   getAllImages((data) => {
+
+  //     // console.log(groupByAlbum(data));
+  //     //   // console.log('groups',data);
+  //     setGroupedImages(groupByAlbum(data));
+  //     //   // console.log('data',data);
+  //   })
+  // }, [])
+
+  // Reload data from database when home screen is focused
   useEffect(() => {
-    createTable();
-    getAllImages((data) => {
-      console.log('groups',groupByAlbum(data));
-      setGroupedImages(groupByAlbum(data));
-    })
+    const unsubscribe = navigation.addListener('focus', () => {
+      getAllImages((data) => {
+        setGroupedImages(groupByAlbum(data));
+      })
+    });
 
-  }, [])
+    // Return the function to unsubscribe from the event so it gets removed on unmount
+    return unsubscribe;
+  }, [navigation]);
+
+
   // Group the images by album name
   const groupByAlbum = (array) => {
     return array.reduce((acc, obj) => {
@@ -44,66 +69,84 @@ const Home = ({ navigation }) => {
   }
 
   const foldersData = () => {
-    const data = groupedImages.map(({ folderName, elements: images }) => ({
-      folderName,
-      firstImage: images[0].uri,
-      length: images.length
-    }));
-    console.log('data',data)
-    return data;
+    let foldersArray = [];
+    Object.keys(groupedImages).forEach(key => {
+      foldersArray.push(
+        {
+          folderName: key,
+          firstImage: groupedImages[key][0].uri,
+          length: groupedImages[key].length
+        }
+      )
+    })
+    // const data = groupedImages.map(({ folderName, elements: images }) => ({
+    //   folderName,
+    //   firstImage: images[0].uri,
+    //   length: images.length
+    // }));
+    console.log('data',foldersArray)
+    return foldersArray;
   }
 
   return (
     <View style={styles.container}>
       <SafeAreaView style={{ flex: 1 }}>
+
         <View style={styles.headerContainer}>
           <Text style={styles.headerContainerText}>My Images</Text>
         </View>
-        <View style={styles.foldersContainer}>
-          <Text style={styles.foldersContainerText}>Albums</Text>
-          <FlatList
-            horizontal
-            data={foldersData()}
-            renderItem={({ item }) => {
-              return (
-                <View style={styles.folder}>
-                  <Image
-                    source={{ uri: item.firstImage }}
-                    style={styles.folderPicture}
-                    resizeMode="cover"
-                  />
-                  <Text style={styles.folderText}>{item.folderName}</Text>
-                  <Text>({item.length})</Text>
-                </View>
-              );
-            }}
-            showsHorizontalScrollIndicator={false}
-          />
-        </View>
+        {
+          groupedImages &&
+          <>
+            <View style={styles.foldersContainer}>
+              <Text style={styles.foldersContainerText}>Albums</Text>
+              <FlatList
+                horizontal
+                data={foldersData()}
+                renderItem={({ item }) => {
+                  return (
+                    <View style={[styles.folder, item.folderName === currentShownFolder ? { borderBottomWidth: 2 } : null]}>
+                      <TouchableOpacity onPress={() => setCurrentShownFolder(item.folderName)}>
+                        <Image
+                          source={{ uri: item.firstImage }}
+                          style={styles.folderPicture}
+                          resizeMode="cover"
+                        />
+                      </TouchableOpacity>
+                      <Text style={styles.folderText}>{item.folderName}</Text>
+                      <Text>({item.length})</Text>
+                    </View>
+                  );
+                }}
+                showsHorizontalScrollIndicator={false}
+              />
+            </View>
 
-        <SafeAreaView style={styles.picturesContainer}>
-          <FlatList
-            data={dummyData}
-            contentContainerStyle={styles.pictureList}
-            numColumns={2}
-            style={styles.pictureList}
-            renderItem={({ item }) => {
-              return (
-                <View style={styles.pictureContainer}>
-                  <TouchableOpacity onPress={() => {navigation.navigate('ViewImage', {imgURL: item.picture})}}>
-                    <Image
-                      source={{ uri: item.picture }}
-                      style={styles.picture}
-                      resizeMode="cover"
-                    />
-                  </TouchableOpacity>
-                </View>
-              );
-            }}
-            keyExtractor={(item, index) => index}
-            showsVerticalScrollIndicator={true}
-          />
-        </SafeAreaView>
+            <SafeAreaView style={styles.picturesContainer}>
+              <FlatList
+                data={groupedImages[currentShownFolder]}
+                contentContainerStyle={styles.pictureList}
+                numColumns={2}
+                style={styles.pictureList}
+                renderItem={({ item }) => {
+                  return (
+                    <View style={styles.pictureContainer} key={item.id}>
+                      <TouchableOpacity onPress={() => { navigation.navigate('ViewImage', { uri: item.uri, id: item.id, albums: Object.keys(groupedImages) }) }}>
+                        <Image
+                          source={{ uri: item.uri }}
+                          style={styles.picture}
+                          resizeMode="cover"
+                        />
+                      </TouchableOpacity>
+                    </View>
+                  );
+                }}
+                keyExtractor={(item, index) => index}
+                showsVerticalScrollIndicator={true}
+              />
+            </SafeAreaView>
+          </>
+        }
 
         <Pressable style={styles.buttonTakeshot} onPress={() => navigation.navigate('CameraShot')}>
           <Ionicons name="camera" size={48} color="black" />
@@ -138,7 +181,7 @@ const styles = StyleSheet.create({
     // backgroundColor: 'yellow',
     minHeight: 150,
     paddingHorizontal: 8,
-    paddingBottom: 10,
+    // paddingBottom: 10,
     borderBottomColor: "black",
     borderBottomWidth: 0.5,
   },
@@ -153,6 +196,7 @@ const styles = StyleSheet.create({
   },
   folder: {
     marginRight: 10,
+    paddingBottom: 2,
     alignItems: "center",
   },
   folderText: {
@@ -193,8 +237,48 @@ const styles = StyleSheet.create({
     width: '100%',
     height: 190,
     borderRadius: 5,
+    borderColor: 'rgba(0,0,0,.5 )',
+    borderWidth: .1
   },
 });
+
+const data = {
+  "Camera": [
+    {
+      "album": "Camera",
+      "id": 17,
+      "name": "IMG_20230907_125519.jpg",
+      "uri": "file:///data/user/0/host.exp.exponent/files/images/IMG_20230907_125519.jpg"
+    },
+    {
+      "album": "Camera",
+      "id": 18,
+      "name": "IMG_20230907_125526.jpg",
+      "uri": "file:///data/user/0/host.exp.exponent/files/images/IMG_20230907_125526.jpg"
+    }
+  ],
+  "Selfies": [
+    {
+      "album": "Camera",
+      "id": 14,
+      "name": "IMG_20230907_074808.jpg",
+      "uri": "file:///data/user/0/host.exp.exponent/files/images/IMG_20230907_074808.jpg"
+    },
+    {
+      "album": "Camera",
+      "id": 15,
+      "name": "IMG_20230907_125507.jpg",
+      "uri": "file:///data/user/0/host.exp.exponent/files/images/IMG_20230907_125507.jpg"
+    },
+    {
+      "album": "Camera",
+      "id": 16,
+      "name": "IMG_20230907_125512.jpg",
+      "uri": "file:///data/user/0/host.exp.exponent/files/images/IMG_20230907_125512.jpg"
+    },
+  ],
+};
+
 
 const dummyData = [
   {

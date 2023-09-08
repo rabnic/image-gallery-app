@@ -27,6 +27,22 @@ const addImage = (name, album, uri) => {
     (result) => console.log('result: Image added successfully')
     );
 };
+
+const updateAlbum = (id, newAlbum) => {
+    console.log('>> updateAlbum');
+    db.transaction((tx) => {
+        tx.executeSql(
+            'UPDATE images SET album = ? WHERE id = ?',
+            [newAlbum, id],
+            (txObj, resultSet) => {
+                console.log('result: Album updated successfully');
+            },
+            (txObj, error) => {
+                console.error('Error updating album:', error);
+            }
+        );
+    });
+};
  
 const getAllImages = (callback) => {
     db.transaction((tx) => {
@@ -66,4 +82,4 @@ const deleteAllImages = (id) => {
 };
 
 
-export { createTable, addImage, getAllImages, deleteImage, deleteAllImages };
+export { createTable, addImage, getAllImages, deleteImage, deleteAllImages, updateAlbum };
