@@ -11,6 +11,7 @@ const ViewImage = ({ route, navigation }) => {
   const [showMoveTo, setShowMoveTo] = useState(false);
   const [showInfo, setShowInfo] = useState(false);
   const [newFolder, setNewFolder] = useState('');
+  const [isFolderInputValid, setIsFolderInputValid] = useState(true);
   const {image, albums } = route.params;
   // console.log('albums:', albums);
 
@@ -38,6 +39,10 @@ const ViewImage = ({ route, navigation }) => {
   }
 
   const handleMoveToFolder = (toFolder) => {
+    if (toFolder.trim() === '') {
+      setIsFolderInputValid(false)
+      return;
+    }
     updateAlbum(image.id, toFolder);
     navigation.navigate('Home', { doReload: true });
   }
@@ -93,7 +98,7 @@ const ViewImage = ({ route, navigation }) => {
           <Text style={styles.moveToFolderTextHeader}>Create New Folder</Text>
           <View style={styles.createFolderContainer}>
             <TextInput
-              style={styles.textInput}
+              style={[styles.textInput, !isFolderInputValid && {borderColor: 'red', borderWidth: .7}]}
               placeholder="Type new folder"
               onChangeText={newText => setNewFolder(newText)}
               value={newFolder}
