@@ -24,20 +24,6 @@ export const saveImageToDisk = async (image) => {
     }
 }
 
-const getFormattedDateTime = () => {
-    const today = new Date();
-
-    return today.toLocaleString(navigator.language, {
-        weekday: "short",
-        year: "numeric",
-        month: "short",
-        day: "numeric",
-        hour: "numeric",
-        minute: "numeric"
-    });
-}
-
-
 const getFormattedName = () => {
     let d = new Date().toISOString();
     d = d.substring(0, 19);

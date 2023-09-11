@@ -13,9 +13,21 @@ const CameraShot = ({ navigation }) => {
   const [hasPermissions, setHasPersmissions] = useState(false);
   const [cameraRef, setCameraRef] = useState(null);
   const [showRecentPicture, setShowRecentPicture] = useState(false);
-  const [location, setLocation] = useState(null);
+  const [location, setLocation] = useState('unknown');
   let recentPicture = picture || null;
-  const DEFAULT_ALBUM_NAME = 'Camera'
+  const DEFAULT_ALBUM_NAME = 'Camera';
+
+  // Openweather api key
+  const APIKEY = "843587735a64adb01ce2e19f2d093456";
+  const getLocationName = (lat, lon) => {
+    return fetch(
+      `https://api.openweathermap.org/data/2.5/weather?lat=${lat}&lon=${lon}&appid=${APIKEY}`
+    )
+      .then((response) => response.json())
+      .then((data) => {
+        return data.name;
+      });
+  };
 
   useEffect(() => {
     // Request camera permissions
@@ -23,11 +35,10 @@ const CameraShot = ({ navigation }) => {
       const { status } = await Camera.getCameraPermissionsAsync();
       setHasPersmissions(status)
     })()
-    // createTable();
   }, [])
 
   useEffect(() => {
-    // REquest location permissions
+    // Request location permissions
     (async () => {
       let { status } = await Location.requestForegroundPermissionsAsync();
       if (status !== 'granted') {
@@ -36,7 +47,13 @@ const CameraShot = ({ navigation }) => {
       }
 
       let location = await Location.getCurrentPositionAsync({});
-      setLocation(location);
+      const {latitude, longitude} = location.coords;
+      // console.log(latitude, longitude)
+      getLocationName(latitude, longitude).then((location) => {
+        setLocation(location);
+      }).catch((err) => {
+        console.log('Error getting location name', err);
+      });
     })();
   })
 
@@ -51,14 +68,15 @@ const CameraShot = ({ navigation }) => {
       recentPicture = takePicture;
       setPicture(takePicture);
       setShowRecentPicture(true);
+      // console.log('Location =',location)
     }
   };
 
   const saveRecentPicture = () => {
-    console.log(recentPicture)
+    // console.log(recentPicture)
     saveImageToDisk(recentPicture)
       .then(([fileName, imagePath]) => {
-        addImage(fileName, DEFAULT_ALBUM_NAME, imagePath);
+        addImage(fileName, DEFAULT_ALBUM_NAME, imagePath, location, getFormattedDateTime());
         setShowRecentPicture(false);
       });
   }
@@ -67,6 +85,19 @@ const CameraShot = ({ navigation }) => {
     setShowRecentPicture(false);
     setPicture(null);
   }
+
+  const getFormattedDateTime = () => {
+    const today = new Date();
+
+    return today.toLocaleString(navigator.language, {
+        weekday: "short",
+        year: "numeric",
+        month: "short",
+        day: "numeric",
+        hour: "numeric",
+        minute: "numeric"
+    });
+}
 
   if (!hasPermissions) {
     // Camera permissions are still loading

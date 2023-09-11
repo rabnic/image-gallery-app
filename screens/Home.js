@@ -10,7 +10,7 @@ import {
   TouchableOpacity,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
-import { createTable, db, getAllImages } from "../database/database";
+import { createTable, db, getAllImages, deleteTable } from "../database/database";
 import { useEffect, useState } from "react";
 import { StatusBar } from 'expo-status-bar';
 
@@ -31,19 +31,9 @@ const Home = ({ route, navigation }) => {
   //   })
   // }
 
-  // useEffect(() => {
-  //   createTable();
-  //   getAllImages((data) => {
-
-  //     // console.log(groupByAlbum(data));
-  //     //   // console.log('groups',data);
-  //     setGroupedImages(groupByAlbum(data));
-  //     //   // console.log('data',data);
-  //   })
-  // }, [])
-
   // Reload data from database when home screen is focused
   useEffect(() => {
+    createTable();
     const unsubscribe = navigation.addListener('focus', () => {
       getAllImages((data) => {
         setGroupedImages(groupByAlbum(data));
@@ -73,18 +63,13 @@ const Home = ({ route, navigation }) => {
     Object.keys(groupedImages).forEach(key => {
       foldersArray.push(
         {
-          folderName: key,
+          album: key,
           firstImage: groupedImages[key][0].uri,
           length: groupedImages[key].length
         }
       )
     })
-    // const data = groupedImages.map(({ folderName, elements: images }) => ({
-    //   folderName,
-    //   firstImage: images[0].uri,
-    //   length: images.length
-    // }));
-    console.log('data',foldersArray)
+ 
     return foldersArray;
   }
 
@@ -96,7 +81,7 @@ const Home = ({ route, navigation }) => {
           <Text style={styles.headerContainerText}>My Images</Text>
         </View>
         {
-          groupedImages &&
+          Object.keys(groupedImages).length > 0 ?
           <>
             <View style={styles.foldersContainer}>
               <Text style={styles.foldersContainerText}>Albums</Text>
@@ -105,15 +90,15 @@ const Home = ({ route, navigation }) => {
                 data={foldersData()}
                 renderItem={({ item }) => {
                   return (
-                    <View style={[styles.folder, item.folderName === currentShownFolder ? { borderBottomWidth: 2 } : null]}>
-                      <TouchableOpacity onPress={() => setCurrentShownFolder(item.folderName)}>
+                    <View style={[styles.folder, item.album === currentShownFolder ? { borderBottomWidth: 2 } : null]}>
+                      <TouchableOpacity onPress={() => setCurrentShownFolder(item.album)}>
                         <Image
                           source={{ uri: item.firstImage }}
                           style={styles.folderPicture}
                           resizeMode="cover"
                         />
                       </TouchableOpacity>
-                      <Text style={styles.folderText}>{item.folderName}</Text>
+                      <Text style={styles.folderText}>{item.album}</Text>
                       <Text>({item.length})</Text>
                     </View>
                   );
@@ -131,7 +116,7 @@ const Home = ({ route, navigation }) => {
                 renderItem={({ item }) => {
                   return (
                     <View style={styles.pictureContainer} key={item.id}>
-                      <TouchableOpacity onPress={() => { navigation.navigate('ViewImage', { uri: item.uri, id: item.id, albums: Object.keys(groupedImages) }) }}>
+                      <TouchableOpacity onPress={() => { navigation.navigate('ViewImage', { image:{...item}, albums: Object.keys(groupedImages) }) }}>
                         <Image
                           source={{ uri: item.uri }}
                           style={styles.picture}
@@ -146,6 +131,8 @@ const Home = ({ route, navigation }) => {
               />
             </SafeAreaView>
           </>
+          :
+          <NoImagesView />
         }
 
         <Pressable style={styles.buttonTakeshot} onPress={() => navigation.navigate('CameraShot')}>
@@ -155,6 +142,15 @@ const Home = ({ route, navigation }) => {
     </View>
   );
 };
+
+const NoImagesView = () => {
+  return (
+    <View style={styles.noImages}>
+        <Text style={styles.noImagesText}>No Images shot! {'\n'} Press camera below to start.</Text>
+        <Ionicons name="images" size={74} color="gray" />
+    </View>
+  )
+}
 
 export default Home;
 
@@ -240,176 +236,16 @@ const styles = StyleSheet.create({
     borderColor: 'rgba(0,0,0,.5 )',
     borderWidth: .1
   },
+  noImages: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  noImagesText: {
+    fontSize: 22,
+    letterSpacing: 1.5,
+    textAlign: 'center',
+    marginBottom: 30,
+  }
 });
 
-const data = {
-  "Camera": [
-    {
-      "album": "Camera",
-      "id": 17,
-      "name": "IMG_20230907_125519.jpg",
-      "uri": "file:///data/user/0/host.exp.exponent/files/images/IMG_20230907_125519.jpg"
-    },
-    {
-      "album": "Camera",
-      "id": 18,
-      "name": "IMG_20230907_125526.jpg",
-      "uri": "file:///data/user/0/host.exp.exponent/files/images/IMG_20230907_125526.jpg"
-    }
-  ],
-  "Selfies": [
-    {
-      "album": "Camera",
-      "id": 14,
-      "name": "IMG_20230907_074808.jpg",
-      "uri": "file:///data/user/0/host.exp.exponent/files/images/IMG_20230907_074808.jpg"
-    },
-    {
-      "album": "Camera",
-      "id": 15,
-      "name": "IMG_20230907_125507.jpg",
-      "uri": "file:///data/user/0/host.exp.exponent/files/images/IMG_20230907_125507.jpg"
-    },
-    {
-      "album": "Camera",
-      "id": 16,
-      "name": "IMG_20230907_125512.jpg",
-      "uri": "file:///data/user/0/host.exp.exponent/files/images/IMG_20230907_125512.jpg"
-    },
-  ],
-};
-
-
-const dummyData = [
-  {
-    title: "Camera",
-    picture: imgURL,
-    count: 5,
-  },
-  {
-    title: "Selfies",
-    picture: "file:///data/user/0/host.exp.exponent/files/images/1694006119933.jpg",
-    count: 15,
-  },
-  {
-    title: "Family",
-    picture: "https://picsum.photos/id/101/200",
-    count: 3,
-  },
-  {
-    title: "Gents",
-    picture: "https://picsum.photos/id/11/200",
-    count: 25,
-  },
-  {
-    title: "Cars",
-    picture: "https://picsum.photos/id/30/200",
-    count: 11,
-  },
-  {
-    title: "Tech",
-    picture: imgURL,
-    count: 9,
-  },
-  {
-    title: "Cheatsheets",
-    picture: imgURL,
-    count: 18,
-  },
-];
-
-const dummyPics = [
-  {
-    title: "Soweto",
-    data: [
-      {
-        key: "1",
-        text: "Item text 1",
-        uri: "https://picsum.photos/id/1/200",
-      },
-      {
-        key: "2",
-        text: "Item text 2",
-        uri: "https://picsum.photos/id/10/200",
-      },
-
-      {
-        key: "3",
-        text: "Item text 3",
-        uri: "https://picsum.photos/id/1002/200",
-      },
-      {
-        key: "4",
-        text: "Item text 4",
-        uri: "https://picsum.photos/id/1006/200",
-      },
-      {
-        key: "5",
-        text: "Item text 5",
-        uri: "https://picsum.photos/id/1008/200",
-      },
-    ],
-  },
-  {
-    title: "Selfies",
-    data: [
-      {
-        key: "1",
-        text: "Item text 1",
-        uri: "https://picsum.photos/id/1011/200",
-      },
-      {
-        key: "2",
-        text: "Item text 2",
-        uri: "https://picsum.photos/id/1012/200",
-      },
-
-      {
-        key: "3",
-        text: "Item text 3",
-        uri: "https://picsum.photos/id/1013/200",
-      },
-      {
-        key: "4",
-        text: "Item text 4",
-        uri: "https://picsum.photos/id/1015/200",
-      },
-      {
-        key: "5",
-        text: "Item text 5",
-        uri: "https://picsum.photos/id/1016/200",
-      },
-    ],
-  },
-  {
-    title: "Family",
-    data: [
-      {
-        key: "1",
-        text: "Item text 1",
-        uri: "https://picsum.photos/id/1020/200",
-      },
-      {
-        key: "2",
-        text: "Item text 2",
-        uri: "https://picsum.photos/id/1024/200",
-      },
-
-      {
-        key: "3",
-        text: "Item text 3",
-        uri: "https://picsum.photos/id/1027/200",
-      },
-      {
-        key: "4",
-        text: "Item text 4",
-        uri: "https://picsum.photos/id/1035/200",
-      },
-      {
-        key: "5",
-        text: "Item text 5",
-        uri: "https://picsum.photos/id/1038/200",
-      },
-    ],
-  },
-];

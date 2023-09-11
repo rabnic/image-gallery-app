@@ -7,20 +7,20 @@ const createTable = () => {
     db.transaction((tx) => {
         console.log('>>> createTable')
         tx.executeSql(
-            'CREATE TABLE IF NOT EXISTS images (id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT, album TEXT, uri TEXT)'
+            'CREATE TABLE IF NOT EXISTS images (id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT, album TEXT, uri TEXT, location TEXT, date TEXT)'
         );
     },
     (error) => console.error('Error creating table:', error),
     (result) => console.log('result: Table created successfully'));
 };
 
-const addImage = (name, album, uri) => {
+const addImage = (name, album, uri, location, date) => {
     console.log('>> addImage')
     // console.log(db)
     db.transaction((tx) => {
         tx.executeSql(
-            'INSERT INTO images (name, album, uri) VALUES (?, ?, ?)',
-            [name, album, uri]
+            'INSERT INTO images (name, album, uri, location, date) VALUES (?, ?, ?, ?, ?)',
+            [name, album, uri, location, date]
         );
     },
     (error) => console.error('Error adding image:', error),
@@ -81,5 +81,16 @@ const deleteAllImages = (id) => {
     });
 };
 
+const deleteTable = () => {
+    db.transaction((tx) => {
+        console.log('>>> deleteTable')
+        tx.executeSql(
+            'DROP TABLE IF EXISTS images'
+        );
+    },
+    (error) => console.error('Error deleting table:', error),
+    (result) => console.log('result: Table deleted successfully'));
+};
 
-export { createTable, addImage, getAllImages, deleteImage, deleteAllImages, updateAlbum };
+
+export { createTable, addImage, getAllImages, deleteImage, deleteAllImages, updateAlbum, deleteTable };

@@ -4,18 +4,18 @@ import { Alert, StyleSheet, Text, Pressable, View, Image, TouchableOpacity, Text
 import { StatusBar } from 'expo-status-bar';
 import { Entypo } from '@expo/vector-icons';
 import { deleteImage, updateAlbum } from '../database/database';
+import * as Sharing from 'expo-sharing';
 
 const ViewImage = ({ route, navigation }) => {
   const [showActions, setShowActions] = useState(true);
-  const [showMoveTo, setMoveTo] = useState(false);
+  const [showMoveTo, setShowMoveTo] = useState(false);
+  const [showInfo, setShowInfo] = useState(false);
   const [newFolder, setNewFolder] = useState('');
-  const { uri, id, albums } = route.params;
-  console.log('albums:', albums);
+  const {image, albums } = route.params;
+  // console.log('albums:', albums);
 
-  // const imgURL =
-  //   "https://img.freepik.com/free-photo/person-enjoying-warm-nostalgic-sunset_52683-100695.jpg?w=1380&t=st=1693908616~exp=1693909216~hmac=7cc7a1d87c35848b3727b4b3a8e4a6f516a1427cf1b97008c4eeea3d647c8ac6";
-
-  const confirmDeleteAlert = () =>
+  const imageInfoData = [`Name: ${image.name}`,`Album: ${image.album}`,`Date: ${image.date}`,`Location: ${image.location}`,]
+  const confirmDeleteAlert = () => {
     Alert.alert('Confirm Delete', 'Do you want to delete this image?', [
       {
         text: 'Cancel',
@@ -24,72 +24,98 @@ const ViewImage = ({ route, navigation }) => {
       },
       { text: 'Yes', onPress: () => handleDeleteImage(), style: 'destructive' },
     ]);
+  }
+
+  const handleShowInfo = () => {
+    Alert.alert('Image Info', imageInfoData.join('\n'), [
+      { text: 'Ok', onPress: () => setShowInfo(false)},
+    ]);
+  };
 
   const handleDeleteImage = () => {
-    deleteImage(id);
+    deleteImage(image.id);
     navigation.navigate('Home', { doReload: true });
   }
 
   const handleMoveToFolder = (toFolder) => {
-    updateAlbum(id, toFolder);
+    updateAlbum(image.id, toFolder);
     navigation.navigate('Home', { doReload: true });
+  }
+
+  const handleFileSharing = () => {
+    if (Sharing.isAvailableAsync()) {
+      Sharing.shareAsync(image.uri)
+    }
   }
 
   return (
     <View style={styles.container}>
-      <Pressable style={styles.image} onPress={() => setShowActions(!showActions)}>
-        <Image source={{ uri: uri }} style={styles.image} resizeMode='cover' />
+      <Pressable style={styles.image} onPress={() => { setShowActions(!showActions); setShowMoveTo(false) }}>
+        <Image source={{ uri: image.uri }} style={styles.image} resizeMode='cover' />
       </Pressable>
       {
         showActions &&
-        <>
-          <View style={styles.actionsContainer}>
+        <View style={styles.actionsContainer}>
+          <TouchableOpacity onPress={handleFileSharing}>
             <View style={styles.actionContainer}>
               <Entypo name="share" size={24} color="black" />
               <Text style={styles.actionText}>share</Text>
             </View>
+          </TouchableOpacity>
+
+
+          <TouchableOpacity onPress={() => setShowMoveTo(true)}>
             <View style={styles.actionContainer}>
               <Entypo name="folder-images" size={24} color="black" />
               <Text style={styles.actionText}>move to</Text>
             </View>
-            <TouchableOpacity onPress={confirmDeleteAlert}>
-              <View style={styles.actionContainer}>
-                <Entypo name="trash" size={24} color="black" />
-                <Text style={styles.actionText}>delete</Text>
-              </View>
-            </TouchableOpacity>
+          </TouchableOpacity>
+
+          <TouchableOpacity onPress={confirmDeleteAlert}>
+            <View style={styles.actionContainer}>
+              <Entypo name="trash" size={24} color="black" />
+              <Text style={styles.actionText}>delete</Text>
+            </View>
+          </TouchableOpacity>
+
+          <TouchableOpacity onPress={handleShowInfo}>
             <View style={styles.actionContainer}>
               <Entypo name="info-with-circle" size={24} color="black" />
               <Text style={styles.actionText}>info</Text>
             </View>
-          </View>
+          </TouchableOpacity>
 
-          <View style={styles.moveToFolderContainer}>
-            <Text style={styles.moveToFolderTextHeader}>Create New Folder</Text>
-            <View style={styles.createFolderContainer}>
-              <TextInput
-                style={styles.textInput}
-                placeholder="Type new folder"
-                onChangeText={newText => setNewFolder(newText)}
-                value={newFolder}
-              />
-              <Button title='Create' onPress={() => handleMoveToFolder(newFolder)} color={'#000'} />
-            </View>
-            {
-              albums.length > 1 &&
-              <>
-                <Text style={styles.moveToFolderTextHeader}>Move To Folder</Text>
-                <FlatList data={albums} renderItem={({ item }) => {
-                  return (
-                    <TouchableOpacity style={styles.albumsContainer} onPress={() => handleMoveToFolder(item)}>
-                      <Text style={styles.folderName}>{item}</Text>
-                    </TouchableOpacity>
-                  )
-                }} />
-              </>
-            }
+        </View>
+      }
+      {
+        showMoveTo &&
+        <View style={styles.moveToFolderContainer}>
+          <Text style={styles.moveToFolderTextHeader}>Create New Folder</Text>
+          <View style={styles.createFolderContainer}>
+            <TextInput
+              style={styles.textInput}
+              placeholder="Type new folder"
+              onChangeText={newText => setNewFolder(newText)}
+              value={newFolder}
+            />
+            <Button title='Create' onPress={() => handleMoveToFolder(newFolder)} color={'#000'} />
           </View>
-        </>
+          {
+            albums.length > 1 &&
+            <>
+              <Text style={styles.moveToFolderTextHeader}>Move To Folder</Text>
+              <FlatList data={albums} renderItem={({ item }) => {
+                if (image.album === item) return null;
+
+                return (
+                  <TouchableOpacity style={styles.albumsContainer} onPress={() => handleMoveToFolder(item)}>
+                    <Text style={styles.album}>{item}</Text>
+                  </TouchableOpacity>
+                )
+              }} />
+            </>
+          }
+        </View>
       }
     </View>
   );
@@ -128,7 +154,7 @@ const styles = StyleSheet.create({
     height: 28,
     marginVertical: 8
   },
-  folderName: {
+  album: {
     fontSize: 18,
   },
   container: {
